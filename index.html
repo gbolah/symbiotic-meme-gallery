@@ -39,87 +39,88 @@
 </main>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// Supabase client
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Firebase config (Firestore only)
-const firebaseConfig = {
-  apiKey: "AIzaSyC2ZMSgdR1JXIig4XqSUW_Fv_e1qguzoTg",
-  authDomain: "meme-gallery-36502.firebaseapp.com",
-  projectId: "meme-gallery-36502",
-  storageBucket: "meme-gallery-36502.appspot.com",
-  messagingSenderId: "260214027111",
-  appId: "1:260214027111:web:ab08f479357ae55ffb35c2",
-  measurementId: "G-XVD1331589"
-};
+const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8'
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-const form = document.getElementById("memeForm");
-const gallery = document.getElementById("gallery");
-const submitBtn = document.getElementById("submitBtn");
+const form = document.getElementById('memeForm')
+const gallery = document.getElementById('gallery')
+const submitBtn = document.getElementById('submitBtn')
 
-// Realtime listener for memes
-const memesQuery = query(collection(db, "memes"), orderBy("createdAt", "desc"));
-onSnapshot(memesQuery, snapshot => {
-  gallery.innerHTML = "";
-  snapshot.forEach(doc => {
-    const meme = doc.data();
-    const memeCard = document.createElement("div");
-    memeCard.className = "meme-card";
+// Load memes from Supabase
+async function loadMemes() {
+  gallery.innerHTML = ''
+  const { data, error } = await supabase
+    .from('meme')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) return console.error(error)
+
+  data.forEach(meme => {
+    const memeCard = document.createElement('div')
+    memeCard.className = 'meme-card'
     memeCard.innerHTML = `
       <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/180?text=Image+Not+Found'">
       <div class="author">${meme.handle}</div>
-    `;
-    gallery.appendChild(memeCard);
-  });
-});
+    `
+    gallery.appendChild(memeCard)
+  })
+}
 
-// Handle form submission
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const handle = document.getElementById("handle").value.trim();
-  const file = document.getElementById("memeFile").files[0];
-  const urlInput = document.getElementById("memeUrl").value.trim();
+// Form submission
+form.addEventListener('submit', async e => {
+  e.preventDefault()
+  const handle = document.getElementById('handle').value.trim()
+  const file = document.getElementById('memeFile').files[0]
+  const urlInput = document.getElementById('memeUrl').value.trim()
 
-  if (!handle) return alert("Please enter your handle");
-  if (!file && !urlInput) return alert("Please upload a file or enter an image URL");
+  if (!handle) return alert('Please enter your handle')
+  if (!file && !urlInput) return alert('Please upload a file or enter an image URL')
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Uploading...";
+  submitBtn.disabled = true
+  submitBtn.textContent = 'Uploading...'
 
-  let fileUrl = urlInput;
+  let fileUrl = urlInput
 
   try {
     if (file) {
-      const data = new FormData();
-      data.append("file", file);
-      data.append("upload_preset", "symbiotic_memes"); // your Cloudinary unsigned preset
-      const res = await fetch("https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload", {
-        method: "POST",
+      // Upload to Cloudinary
+      const data = new FormData()
+      data.append('file', file)
+      data.append('upload_preset', 'symbiotic_memes')
+      const res = await fetch('https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload', {
+        method: 'POST',
         body: data
-      });
-      const json = await res.json();
-      if (!res.ok || !json.secure_url) throw new Error("Upload failed");
-      fileUrl = json.secure_url;
+      })
+      const json = await res.json()
+      if (!res.ok || !json.secure_url) throw new Error('Cloudinary upload failed')
+      fileUrl = json.secure_url
     }
 
-    await addDoc(collection(db, "memes"), {
-      handle,
-      url: fileUrl,
-      createdAt: Date.now()
-    });
+    // Insert into Supabase
+    const { error } = await supabase.from('meme').insert([
+      { handle, url: fileUrl }
+    ])
+    if (error) throw error
 
-    form.reset();
+    form.reset()
+    loadMemes()
   } catch (err) {
-    console.error(err);
-    alert("Upload failed, please try again.");
+    console.error(err)
+    alert('Upload failed, please try again.')
   }
 
-  submitBtn.disabled = false;
-  submitBtn.textContent = "Submit";
-});
+  submitBtn.disabled = false
+  submitBtn.textContent = 'Submit'
+})
+
+// Initial load
+loadMemes()
 </script>
 
 </body>
