@@ -1,127 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Symbiotic Meme Gallery</title>
-<style>
-  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; color:#333; }
-  header { background:#4CAF50; color:white; padding:1rem; text-align:center; }
-  main { max-width:900px; margin:auto; padding:1rem; }
-  form { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:2rem; }
-  input[type="text"], input[type="url"], input[type="file"] { padding:0.5rem; font-size:1rem; width:100%; }
-  button { padding:0.6rem; font-size:1rem; background:#4CAF50; color:white; border:none; cursor:pointer; transition:0.2s; }
-  button:disabled { background:#999; cursor:not-allowed; }
-  button:hover:not(:disabled) { background:#45a049; }
-  .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
-  .meme-card { background:white; border-radius:8px; box-shadow:0 0 5px rgba(0,0,0,0.1); padding:0.5rem; width:180px; text-align:center; display:flex; flex-direction:column; }
-  .meme-card img { max-width:100%; border-radius:5px; object-fit:cover; }
-  .meme-card .author { margin-top:0.5rem; font-size:0.9rem; color:#555; word-break:break-word; }
-  @media(max-width:500px){ .meme-card{ width:48%; } }
-</style>
-</head>
-<body>
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const handle = document.getElementById("handle").value.trim();
+  const file = document.getElementById("memeFile").files[0];
+  const urlInput = document.getElementById("memeUrl").value.trim();
 
-<header>
-  <h1>Symbiotic Meme Gallery</h1>
-  <p>Share your memes! Upload a file or paste an image URL.</p>
-</header>
+  if (!handle) return alert("Please enter your handle");
+  if (!file && !urlInput) return alert("Please upload a file or enter an image URL");
 
-<main>
-  <form id="memeForm">
-    <input type="text" id="handle" placeholder="@yourhandle" required>
-    <input type="url" id="memeUrl" placeholder="Paste image URL (optional)">
-    <input type="file" id="memeFile" accept="image/*">
-    <button type="submit" id="submitBtn">Submit</button>
-  </form>
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Uploading...";
 
-  <div class="gallery" id="gallery"></div>
-</main>
-
-<script type="module">
-// Supabase client
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-const form = document.getElementById('memeForm')
-const gallery = document.getElementById('gallery')
-const submitBtn = document.getElementById('submitBtn')
-
-// Load memes from Supabase
-async function loadMemes() {
-  gallery.innerHTML = ''
-  const { data, error } = await supabase
-    .from('meme')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) return console.error(error)
-
-  data.forEach(meme => {
-    const memeCard = document.createElement('div')
-    memeCard.className = 'meme-card'
-    memeCard.innerHTML = `
-      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/180?text=Image+Not+Found'">
-      <div class="author">${meme.handle}</div>
-    `
-    gallery.appendChild(memeCard)
-  })
-}
-
-// Form submission
-form.addEventListener('submit', async e => {
-  e.preventDefault()
-  const handle = document.getElementById('handle').value.trim()
-  const file = document.getElementById('memeFile').files[0]
-  const urlInput = document.getElementById('memeUrl').value.trim()
-
-  if (!handle) return alert('Please enter your handle')
-  if (!file && !urlInput) return alert('Please upload a file or enter an image URL')
-
-  submitBtn.disabled = true
-  submitBtn.textContent = 'Uploading...'
-
-  let fileUrl = urlInput
+  let fileUrl = urlInput;
 
   try {
     if (file) {
-      // Upload to Cloudinary
-      const data = new FormData()
-      data.append('file', file)
-      data.append('upload_preset', 'symbiotic_memes')
-      const res = await fetch('https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload', {
-        method: 'POST',
+      const data = new FormData();
+      data.append("file", file);
+      data.append("upload_preset", "symbiotic_memes"); // your Cloudinary unsigned preset
+      const res = await fetch("https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload", {
+        method: "POST",
         body: data
-      })
-      const json = await res.json()
-      if (!res.ok || !json.secure_url) throw new Error('Cloudinary upload failed')
-      fileUrl = json.secure_url
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        console.error("Cloudinary HTTP error:", res.status, res.statusText, json);
+        throw new Error(`Cloudinary HTTP error ${res.status}`);
+      }
+
+      if (!json.secure_url) {
+        console.error("Cloudinary response missing secure_url:", json);
+        throw new Error("Cloudinary upload did not return a secure_url");
+      }
+
+      fileUrl = json.secure_url;
     }
 
-    // Insert into Supabase
-    const { error } = await supabase.from('meme').insert([
-      { handle, url: fileUrl }
-    ])
-    if (error) throw error
+    // Save to Supabase / Firestore
+    await addDoc(collection(db, "memes"), {
+      handle,
+      url: fileUrl,
+      createdAt: Date.now()
+    });
 
-    form.reset()
-    loadMemes()
+    form.reset();
   } catch (err) {
-    console.error(err)
-    alert('Upload failed, please try again.')
+    console.error("Upload failed:", err);
+    alert(`Upload failed: ${err.message}`);
   }
 
-  submitBtn.disabled = false
-  submitBtn.textContent = 'Submit'
-})
-
-// Initial load
-loadMemes()
-</script>
-
-</body>
-</html>
+  submitBtn.disabled = false;
+  submitBtn.textContent = "Submit";
+});
