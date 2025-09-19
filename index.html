@@ -5,16 +5,16 @@
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
   import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  // 🔹 Your Firebase config (replace with your own from console)
+  // 🔹 Your Firebase config
   const firebaseConfig = {
-  apiKey: "AIzaSyC2ZMSgdR1JXIig4XqSUW_Fv_e1qguzoTg",
-  authDomain: "meme-gallery-36502.firebaseapp.com",
-  projectId: "meme-gallery-36502",
-  storageBucket: "meme-gallery-36502.firebasestorage.app",
-  messagingSenderId: "260214027111",
-  appId: "1:260214027111:web:ab08f479357ae55ffb35c2",
-  measurementId: "G-XVD1331589"
-};
+    apiKey: "AIzaSyC2ZMSgdR1JXIig4XqSUW_Fv_e1qguzoTg",
+    authDomain: "meme-gallery-36502.firebaseapp.com",
+    projectId: "meme-gallery-36502",
+    storageBucket: "meme-gallery-36502.appspot.com",   // ✅ FIXED
+    messagingSenderId: "260214027111",
+    appId: "1:260214027111:web:ab08f479357ae55ffb35c2",
+    measurementId: "G-XVD1331589"
+  };
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
