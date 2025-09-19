@@ -9,7 +9,7 @@
     header { background:#4CAF50; color:white; padding:1rem; text-align:center; }
     main { max-width:800px; margin:auto; padding:1rem; }
     form { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:2rem; }
-    input[type="text"], input[type="url"], input[type="file"] { padding:0.5rem; font-size:1rem; }
+    input[type="text"], input[type="file"] { padding:0.5rem; font-size:1rem; }
     button { padding:0.5rem; font-size:1rem; background:#4CAF50; color:white; border:none; cursor:pointer; }
     button:hover { background:#45a049; }
     .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
@@ -28,29 +28,84 @@
 <main>
   <form id="memeForm">
     <input type="text" id="handle" placeholder="@yourhandle" required>
-    <input type="url" id="memeUrl" placeholder="Paste image URL (optional)">
-    <input type="file" id="memeFile" accept="image/*">
+    <input type="file" id="memeFile" accept="image/*" required>
     <button type="submit">Submit</button>
   </form>
 
   <div class="gallery" id="gallery"></div>
 </main>
 
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+  // Import Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+  import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // 🔹 Your Firebase config (replace with your project’s config)
+  const firebaseConfig = {
+  apiKey: "AIzaSyC2ZMSgdR1JXIig4XqSUW_Fv_e1qguzoTg",
+  authDomain: "meme-gallery-36502.firebaseapp.com",
+  projectId: "meme-gallery-36502",
+  storageBucket: "meme-gallery-36502.firebasestorage.app",
+  messagingSenderId: "260214027111",
+  appId: "1:260214027111:web:ab08f479357ae55ffb35c2",
+  measurementId: "G-XVD1331589"
+};
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const storage = getStorage(app);
+  const db = getFirestore(app);
+
   const form = document.getElementById('memeForm');
   const gallery = document.getElementById('gallery');
 
-  form.addEventListener('submit', function(e) {
+  // Load memes from Firestore
+  async function loadMemes() {
+    gallery.innerHTML = "";
+    const q = query(collection(db, "memes"), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach(doc => {
+      const meme = doc.data();
+      const memeCard = document.createElement('div');
+      memeCard.className = 'meme-card';
+      memeCard.innerHTML = `
+        <img src="${meme.url}" alt="Meme by ${meme.handle}" 
+             onerror="this.src='https://via.placeholder.com/180?text=Image+Not+Found'">
+        <div class="author">meme by ${meme.handle}</div>
+      `;
+      gallery.appendChild(memeCard);
+    });
+  }
+
+  // Submit meme
+  form.addEventListener('submit', async function(e) {
     e.preventDefault();
     const handle = document.getElementById('handle').value.trim();
-    const memeUrl = document.getElementById('memeUrl').value.trim();
-    const memeFile = document.getElementById('memeFile').files[0];
+    const file = document.getElementById('memeFile').files[0];
+    if (!handle || !file) return alert("Please enter handle and choose a file");
 
-    let finalUrl = "";
+    // Upload to Firebase Storage
+    const fileRef = ref(storage, 'memes/' + Date.now() + '-' + file.name);
+    await uploadBytes(fileRef, file);
+    const fileUrl = await getDownloadURL(fileRef);
 
-    if (memeFile) {
-      finalUrl = URL.createObjectURL(memeFile); // temporary preview link
-    } else if (memeUrl) {
-      finalUrl = memeUrl;
-    } else {
-      alert("Please upload a file or enter an image URL.");
+    // Save meme data in Firestore
+    await addDoc(collection(db, "memes"), {
+      handle: handle,
+      url: fileUrl,
+      createdAt: new Date()
+    });
+
+    form.reset();
+    loadMemes(); // Refresh
+  });
+
+  // Load memes on page load
+  loadMemes();
+</script>
+
+</body>
+</html>
