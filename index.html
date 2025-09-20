@@ -15,65 +15,74 @@
   button:hover:not(:disabled) { background:#45a049; }
   progress { width:100%; display:none; margin-bottom:0.5rem; }
 
-  .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
+  .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; position:relative; }
+
+  /* Responsive meme card */
   .meme-card {
+    position: relative;
     background:white;
     border-radius:8px;
+    border:5px solid #39FF14; /* neon green */
     box-shadow:0 0 5px rgba(0,0,0,0.1);
-    width:220px;
-    height:280px;
-    display:flex;
-    flex-direction:column;
-    justify-content:flex-start;
+    width:45%; /* responsive width */
+    aspect-ratio: 11 / 14; /* same ratio as old 220x280 */
     overflow:hidden;
     text-align:center;
     transition: transform 0.3s, box-shadow 0.3s;
-    border: 5px solid #39FF14;
   }
+
   .meme-card:hover { transform: scale(1.05); box-shadow:0 8px 15px rgba(0,0,0,0.2); }
+
   .meme-card img {
     width:100%;
-    height:calc(100% - 40px);
-    object-fit:cover;
+    height:100%;
+    object-fit:cover; /* fill card fully */
     border-radius:5px 5px 0 0;
   }
+
   .meme-card .author {
+    position:absolute;
+    bottom:5px;
+    left:0;
+    width:100%;
     font-size:1rem;
-    color:#000;
+    color:#000; /* black */
     font-weight:bold;
-    padding:5px;
-  }
-  @media(max-width:500px){ .meme-card{ width:48%; } }
-
-  /* Floating neon footer */
-  @keyframes neonPulse {
-    0%, 100% { text-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14, 0 0 20px #39FF14; }
-    50% { text-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14, 0 0 30px #39FF14; }
+    text-align:center;
+    background: rgba(255,255,255,0.6); /* for readability */
+    padding:2px 0;
   }
 
-  footer {
+  @media(max-width:500px){ .meme-card{ width:90%; } }
+
+  /* Floating footer */
+  .floating-footer {
     position: fixed;
     bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1.1rem;
-    color: #39FF14;
-    background: rgba(0,0,0,0.8);
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    z-index: 9999;
-    animation: neonPulse 1.5s infinite;
-  }
-
-  footer a {
+    background: #000;
+    padding: 8px 16px;
+    border: 2px solid #39FF14;
+    border-radius: 8px;
+    font-size: 0.9rem;
     color: #39FF14;
     font-weight: bold;
-    text-decoration: none;
+    z-index: 999;
+    animation: pulse 2s infinite;
   }
 
-  footer a:hover {
-    text-decoration: underline;
-    text-shadow: 0 0 15px #39FF14, 0 0 25px #39FF14, 0 0 40px #39FF14;
+  .floating-footer a {
+    color:#39FF14;
+    text-decoration:none;
+  }
+
+  .floating-footer a:hover { text-decoration:underline; }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 5px #39FF14; }
+    50% { box-shadow: 0 0 20px #39FF14; }
+    100% { box-shadow: 0 0 5px #39FF14; }
   }
 </style>
 </head>
@@ -96,9 +105,10 @@
   <div class="gallery" id="gallery"></div>
 </main>
 
-<footer>
+<!-- Floating footer -->
+<div class="floating-footer">
   Built by <a href="https://x.com/GbolahanPhilip" target="_blank">g9gbobzy</a>
-</footer>
+</div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
@@ -112,8 +122,8 @@ const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
 const progressBar = document.getElementById('uploadProgress')
 
-// Resize and fit image to larger card
-async function resizeImage(file, width = 220, height = 240) {
+// Resize image to card size
+async function resizeImage(file, width = 400, height = 500) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = e => {
@@ -124,11 +134,11 @@ async function resizeImage(file, width = 220, height = 240) {
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
+        ctx.drawImage(img, 0,0,width,height)
         canvas.toBlob(blob => {
-          if (blob) resolve(new File([blob], file.name, { type:'image/jpeg' }))
+          if(blob) resolve(new File([blob], file.name, { type:'image/jpeg' }))
           else reject(new Error('Image resize failed'))
-        }, 'image/jpeg', 0.9)
+        }, 'image/jpeg',0.9)
       }
       img.onerror = err => reject(err)
     }
@@ -141,12 +151,12 @@ async function resizeImage(file, width = 220, height = 240) {
 async function loadMemes() {
   gallery.innerHTML = ''
   const { data, error } = await supabase.from('meme').select('*').order('created_at', { ascending: false })
-  if (error) return console.error(error)
+  if(error) return console.error(error)
   data.forEach(meme => {
     const card = document.createElement('div')
     card.className = 'meme-card'
     card.innerHTML = `
-      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/220x240?text=Image+Not+Found'">
+      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/400x500?text=Image+Not+Found'">
       <div class="author">${meme.handle}</div>
     `
     gallery.appendChild(card)
@@ -160,8 +170,8 @@ form.addEventListener('submit', async e => {
   const file = document.getElementById('memeFile').files[0]
   const urlInput = document.getElementById('memeUrl').value.trim()
 
-  if (!handle) return alert('Enter your handle')
-  if (!file && !urlInput) return alert('Upload file or provide URL')
+  if(!handle) return alert('Enter your handle')
+  if(!file && !urlInput) return alert('Upload file or provide URL')
 
   submitBtn.disabled = true
   submitBtn.textContent = 'Uploading...'
@@ -171,8 +181,8 @@ form.addEventListener('submit', async e => {
   let fileUrl = urlInput || ''
 
   try {
-    if (file) {
-      const resizedFile = await resizeImage(file, 220, 240)
+    if(file) {
+      const resizedFile = await resizeImage(file, 400, 500)
       const formData = new FormData()
       formData.append('file', resizedFile)
       formData.append('upload_preset','symbiotic_memes')
