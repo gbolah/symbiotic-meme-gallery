@@ -65,36 +65,37 @@
     justify-content:center; 
   }
 
+  /* Responsive neon frame */
   .meme-card {
     background:white;
     border-radius:8px;
     border:5px solid #39FF14; /* neon green frame */
-    width:220px;
+    width:100%;           /* responsive width */
+    max-width:300px;      /* max width on large screens */
     display:flex;
     flex-direction:column;
     overflow:hidden;
     text-align:center;
     transition: transform 0.3s, box-shadow 0.3s;
   }
-
   .meme-card:hover { 
     transform: scale(1.05); 
     box-shadow:0 8px 15px rgba(0,0,0,0.2); 
   }
-
   .meme-card img {
     width:100%;
-    height:auto;          /* scale full image on mobile */
+    height:auto;
     display:block;
-    object-fit: contain;  /* show full image inside frame */
+    object-fit:cover;  
+    border-radius:5px 5px 0 0;
   }
-
-  .author {
-    margin-top:5px;
-    padding:5px;
-    background:#000;   /* black background for author name */
-    color:#fff;        /* white text */
+  .meme-card .author {
+    font-size:1rem;
+    color:#000; /* black */
     font-weight:bold;
+    background:white;
+    padding:5px;
+    margin-top:5px;
     border-radius:5px;
   }
 
@@ -126,9 +127,15 @@
     100% { box-shadow: 0 0 20px #39FF14, 0 0 40px #39FF14, 0 0 60px #39FF14; }
   }
 
-  @media(max-width:900px) { .meme-card { width: calc(50% - 1rem); } }
-  @media(max-width:600px) { .meme-card { width: 100%; } }
-
+  @media (min-width: 900px) {
+    .meme-card { width: calc(33% - 1rem); }
+  }
+  @media(max-width:900px) {
+    .meme-card { width: calc(50% - 1rem); }
+  }
+  @media(max-width:600px) {
+    .meme-card { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -166,7 +173,7 @@ const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
 const progressBar = document.getElementById('uploadProgress')
 
-// Resize image before upload
+// Resize image
 async function resizeImage(file, maxWidth = 800) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -192,7 +199,7 @@ async function resizeImage(file, maxWidth = 800) {
   })
 }
 
-// Load memes from Supabase
+// Load memes
 async function loadMemes() {
   gallery.innerHTML = ''
   const { data, error } = await supabase.from('meme').select('*').order('created_at', { ascending: false })
@@ -201,14 +208,14 @@ async function loadMemes() {
     const card = document.createElement('div')
     card.className = 'meme-card'
     card.innerHTML = `
-      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/250x260?text=Image+Not+Found'">
+      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/300x300?text=Image+Not+Found'">
       <div class="author">${meme.handle}</div>
     `
     gallery.appendChild(card)
   })
 }
 
-// Handle form submission
+// Form submission
 form.addEventListener('submit', async e => {
   e.preventDefault()
   const handle = document.getElementById('handle').value.trim()
@@ -267,7 +274,6 @@ form.addEventListener('submit', async e => {
   }
 })
 
-// Initial load
 loadMemes()
 </script>
 </body>
