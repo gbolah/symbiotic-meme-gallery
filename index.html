@@ -5,80 +5,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Symbiotic Meme Gallery</title>
 <style>
-  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; color:#333; }
-  header { background:#4CAF50; color:white; padding:1rem; text-align:center; }
-  
-  main { max-width:1000px; margin:auto; padding:1rem; background: rgba(57,255,20,0.05); /* faded neon green */ }
-
-  form { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
-  input[type="text"], input[type="url"], input[type="file"] { padding:0.5rem; font-size:1rem; width:100%; }
-  button { padding:0.6rem; font-size:1rem; background:#4CAF50; color:white; border:none; cursor:pointer; transition:0.2s; }
-  button:disabled { background:#999; cursor:not-allowed; }
-  button:hover:not(:disabled) { background:#45a049; }
-  progress { width:100%; display:none; margin-bottom:0.5rem; }
-
-  .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
-
-  /* Responsive meme card */
+  body { 
+    font-family: Arial, sans-serif; 
+    margin:0; 
+    padding:0; 
+    background:#f0f0f0; 
+    color:#333; 
+  }
+  header { 
+    background:#4CAF50; 
+    color:white; 
+    padding:1rem; 
+    text-align:center; 
+  }
+  main { 
+    max-width: 900px; 
+    margin: auto; 
+    padding: 1rem; 
+    background: rgba(57, 255, 20, 0.05); /* very faded neon green */
+    border-radius: 10px;
+  }
+  form { 
+    display:flex; 
+    flex-direction:column; 
+    gap:0.5rem; 
+    margin-bottom:1rem; 
+  }
+  input[type="text"], input[type="url"], input[type="file"] { 
+    padding:0.5rem; 
+    font-size:1rem; 
+    width:100%; 
+  }
+  button { 
+    padding:0.6rem; 
+    font-size:1rem; 
+    background:#4CAF50; 
+    color:white; 
+    border:none; 
+    cursor:pointer; 
+    transition:0.2s; 
+  }
+  button:disabled { 
+    background:#999; 
+    cursor:not-allowed; 
+  }
+  button:hover:not(:disabled) { 
+    background:#45a049; 
+  }
+  progress { 
+    width:100%; 
+    display:none; 
+    margin-bottom:0.5rem; 
+  }
+  .gallery { 
+    display:flex; 
+    flex-wrap:wrap; 
+    gap:1rem; 
+    justify-content:center; 
+  }
   .meme-card {
-    width: 45vw;          /* responsive width */
-    max-width: 220px;      /* max size on PC */
-    aspect-ratio: 4/5;     /* keeps width:height ratio */
+    background:white;
+    border-radius:8px;
+    box-shadow:0 0 5px rgba(0,0,0,0.1);
+    width:250px;  /* increased width */
+    height:300px; /* increased height */
     display:flex;
     flex-direction:column;
     overflow:hidden;
-    border: 5px solid #39FF14; /* neon green frame */
-    border-radius:8px;
+    text-align:center;
     transition: transform 0.3s, box-shadow 0.3s;
-    background:white;
+    border: 5px solid #39FF14; /* neon green frame */
   }
-  .meme-card:hover { transform: scale(1.05); box-shadow:0 8px 15px rgba(0,0,0,0.2); }
-
+  .meme-card:hover { 
+    transform: scale(1.05); 
+    box-shadow:0 8px 15px rgba(0,0,0,0.2); 
+  }
   .meme-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;  /* fills the frame fully */
+    width:100%;
+    height: calc(100% - 40px); /* leave space for author name */
+    object-fit:cover;  /* fill the frame fully */
     border-radius:5px 5px 0 0;
   }
-
-  /* Author box below image */
-  .author {
-    background:white;
-    color:black;
-    font-weight:bold;
+  .meme-card .author {
     font-size:1rem;
-    text-align:center;
-    padding:0.3rem;
-    margin-top:0.3rem;
-    border-radius:5px;
-  }
-
-  /* Floating pulsating footer */
-  .floating-footer {
-    position:fixed;
-    bottom:10px;
-    left:50%;
-    transform:translateX(-50%);
-    background:black;
-    color:#39FF14;
-    padding:0.5rem 1rem;
-    border-radius:5px;
+    color:#000; /* black */
     font-weight:bold;
-    font-size:0.9rem;
-    z-index:100;
-    box-shadow:0 0 15px #39FF14;
-    animation: pulse 2s infinite;
+    padding:5px;
   }
-  .floating-footer a { color:#39FF14; text-decoration:none; }
-  .floating-footer a:hover { text-decoration:underline; }
-
+  /* Floating footer */
+  #floatingFooter {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    padding: 10px 20px;
+    border: 2px solid #39FF14;
+    border-radius: 20px;
+    color:#39FF14;
+    font-weight:bold;
+    text-align:center;
+    z-index:1000;
+    animation: pulse 1.5s infinite alternate;
+  }
+  #floatingFooter a {
+    color:#39FF14;
+    text-decoration:none;
+  }
+  #floatingFooter a:hover {
+    text-decoration: underline;
+  }
   @keyframes pulse {
-    0%, 100% { box-shadow:0 0 10px #39FF14; }
-    50% { box-shadow:0 0 25px #39FF14; }
+    0% { box-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14, 0 0 30px #39FF14; }
+    100% { box-shadow: 0 0 20px #39FF14, 0 0 40px #39FF14, 0 0 60px #39FF14; }
   }
-
-  @media(max-width:500px){ .meme-card{ width:90vw; } }
-
+  @media(max-width:500px){ 
+    .meme-card{ width:48%; height:260px; }
+  }
 </style>
 </head>
 <body>
@@ -100,7 +143,7 @@
   <div class="gallery" id="gallery"></div>
 </main>
 
-<div class="floating-footer">
+<div id="floatingFooter">
   Built by <a href="https://x.com/GbolahanPhilip" target="_blank">g9gbobzy</a>
 </div>
 
@@ -108,7 +151,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 const form = document.getElementById('memeForm')
@@ -116,7 +159,8 @@ const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
 const progressBar = document.getElementById('uploadProgress')
 
-async function resizeImage(file, width = 220, height = 240) {
+// Resize and fit image to larger card
+async function resizeImage(file, width = 250, height = 260) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = e => {
@@ -149,7 +193,7 @@ async function loadMemes() {
     const card = document.createElement('div')
     card.className = 'meme-card'
     card.innerHTML = `
-      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/220x240?text=Image+Not+Found'">
+      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/250x260?text=Image+Not+Found'">
       <div class="author">${meme.handle}</div>
     `
     gallery.appendChild(card)
@@ -175,7 +219,7 @@ form.addEventListener('submit', async e => {
 
   try {
     if (file) {
-      const resizedFile = await resizeImage(file, 220, 240)
+      const resizedFile = await resizeImage(file, 250, 260)
       const formData = new FormData()
       formData.append('file', resizedFile)
       formData.append('upload_preset','symbiotic_memes')
@@ -218,6 +262,5 @@ form.addEventListener('submit', async e => {
 // Initial load
 loadMemes()
 </script>
-
 </body>
 </html>
