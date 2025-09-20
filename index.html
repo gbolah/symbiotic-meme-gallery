@@ -38,41 +38,14 @@
   <div class="gallery" id="gallery"></div>
 </main>
 
-<script type="module">
-// Supabase client
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
+<script>
 const form = document.getElementById('memeForm')
 const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
 
-// Load memes from Supabase
-async function loadMemes() {
-  gallery.innerHTML = ''
-  const { data, error } = await supabase
-    .from('meme')
-    .select('*')
-    .order('created_at', { ascending: false })
+// Keep uploaded memes in memory (will reset on refresh for now)
+let memes = []
 
-  if (error) return console.error(error)
-
-  data.forEach(meme => {
-    const memeCard = document.createElement('div')
-    memeCard.className = 'meme-card'
-    memeCard.innerHTML = `
-      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/180?text=Image+Not+Found'">
-      <div class="author">${meme.handle}</div>
-    `
-    gallery.appendChild(memeCard)
-  })
-}
-
-// Form submission
 form.addEventListener('submit', async e => {
   e.preventDefault()
   const handle = document.getElementById('handle').value.trim()
@@ -92,7 +65,7 @@ form.addEventListener('submit', async e => {
       // Upload to Cloudinary
       const data = new FormData()
       data.append('file', file)
-      data.append('upload_preset', 'symbiotic_memes')
+      data.append('upload_preset', 'symbiotic_memes') // your preset
       const res = await fetch('https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload', {
         method: 'POST',
         body: data
@@ -102,14 +75,11 @@ form.addEventListener('submit', async e => {
       fileUrl = json.secure_url
     }
 
-    // Insert into Supabase
-    const { error } = await supabase.from('meme').insert([
-      { handle, url: fileUrl }
-    ])
-    if (error) throw error
-
+    // Add to local gallery (temporary)
+    const meme = { handle, url: fileUrl }
+    memes.unshift(meme)
+    renderGallery()
     form.reset()
-    loadMemes()
   } catch (err) {
     console.error(err)
     alert('Upload failed, please try again.')
@@ -119,8 +89,18 @@ form.addEventListener('submit', async e => {
   submitBtn.textContent = 'Submit'
 })
 
-// Initial load
-loadMemes()
+function renderGallery() {
+  gallery.innerHTML = ''
+  memes.forEach(meme => {
+    const memeCard = document.createElement('div')
+    memeCard.className = 'meme-card'
+    memeCard.innerHTML = `
+      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/180?text=Image+Not+Found'">
+      <div class="author">${meme.handle}</div>
+    `
+    gallery.appendChild(memeCard)
+  })
+}
 </script>
 
 </body>
