@@ -17,31 +17,31 @@
 
   .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
   .meme-card {
-    background:#000; /* neon frame */
-    border: 3px solid #39FF14; /* neon green frame */
+    background:white;
     border-radius:8px;
+    box-shadow:0 0 5px rgba(0,0,0,0.1);
     width:220px;
-    height:260px;
+    height:280px;
     display:flex;
     flex-direction:column;
     justify-content:flex-start;
     overflow:hidden;
     text-align:center;
     transition: transform 0.3s, box-shadow 0.3s;
+    border: 5px solid #39FF14;
   }
-  .meme-card:hover { transform: scale(1.05); box-shadow:0 8px 15px rgba(0,255,20,0.4); }
+  .meme-card:hover { transform: scale(1.05); box-shadow:0 8px 15px rgba(0,0,0,0.2); }
   .meme-card img {
     width:100%;
-    height:100%;
-    object-fit:cover; /* fills the frame */
+    height:calc(100% - 40px);
+    object-fit:cover;
+    border-radius:5px 5px 0 0;
   }
   .meme-card .author {
-    font-size:0.9rem;
-    color:#000; /* author name black */
+    font-size:1rem;
+    color:#000;
     font-weight:bold;
-    margin-top:-30px;
-    background:#39FF14; /* neon green background for name */
-    padding:0.2rem 0;
+    padding:5px;
   }
   @media(max-width:500px){ .meme-card{ width:48%; } }
 
@@ -56,10 +56,9 @@
     bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #39FF14;
-    text-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14, 0 0 20px #39FF14;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0,0,0,0.8);
     padding: 0.5rem 1rem;
     border-radius: 5px;
     z-index: 9999;
@@ -113,105 +112,108 @@ const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
 const progressBar = document.getElementById('uploadProgress')
 
-// Resize image to fill frame
-async function resizeImage(file, width=220, height=260) {
-  return new Promise((resolve,reject)=>{
+// Resize and fit image to larger card
+async function resizeImage(file, width = 220, height = 240) {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = e=>{
+    reader.onload = e => {
       const img = new Image()
       img.src = e.target.result
-      img.onload = ()=>{
+      img.onload = () => {
         const canvas = document.createElement('canvas')
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(blob=>{
-          if(blob) resolve(new File([blob], file.name, { type:'image/jpeg'}))
-          else reject(new Error('Resize failed'))
-        },'image/jpeg',0.9)
+        canvas.toBlob(blob => {
+          if (blob) resolve(new File([blob], file.name, { type:'image/jpeg' }))
+          else reject(new Error('Image resize failed'))
+        }, 'image/jpeg', 0.9)
       }
-      img.onerror = err=>reject(err)
+      img.onerror = err => reject(err)
     }
-    reader.onerror = err=>reject(err)
+    reader.onerror = err => reject(err)
     reader.readAsDataURL(file)
   })
 }
 
 // Load memes
-async function loadMemes(){
-  gallery.innerHTML=''
-  const { data, error } = await supabase.from('meme').select('*').order('created_at',{ascending:false})
-  if(error) return console.error(error)
-  data.forEach(meme=>{
+async function loadMemes() {
+  gallery.innerHTML = ''
+  const { data, error } = await supabase.from('meme').select('*').order('created_at', { ascending: false })
+  if (error) return console.error(error)
+  data.forEach(meme => {
     const card = document.createElement('div')
-    card.className='meme-card'
-    card.innerHTML=`<img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/220x260?text=Image+Not+Found'">
-                      <div class="author">${meme.handle}</div>`
+    card.className = 'meme-card'
+    card.innerHTML = `
+      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/220x240?text=Image+Not+Found'">
+      <div class="author">${meme.handle}</div>
+    `
     gallery.appendChild(card)
   })
 }
 
-// Form submit
-form.addEventListener('submit', async e=>{
+// Form submission
+form.addEventListener('submit', async e => {
   e.preventDefault()
   const handle = document.getElementById('handle').value.trim()
   const file = document.getElementById('memeFile').files[0]
   const urlInput = document.getElementById('memeUrl').value.trim()
 
-  if(!handle) return alert('Enter your handle')
-  if(!file && !urlInput) return alert('Upload file or provide URL')
+  if (!handle) return alert('Enter your handle')
+  if (!file && !urlInput) return alert('Upload file or provide URL')
 
-  submitBtn.disabled=true
-  submitBtn.textContent='Uploading...'
-  progressBar.style.display='block'
-  progressBar.value=0
+  submitBtn.disabled = true
+  submitBtn.textContent = 'Uploading...'
+  progressBar.style.display = 'block'
+  progressBar.value = 0
 
   let fileUrl = urlInput || ''
 
-  try{
-    if(file){
-      const resizedFile = await resizeImage(file)
+  try {
+    if (file) {
+      const resizedFile = await resizeImage(file, 220, 240)
       const formData = new FormData()
       formData.append('file', resizedFile)
       formData.append('upload_preset','symbiotic_memes')
 
       const xhr = new XMLHttpRequest()
       xhr.open('POST','https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload')
-      xhr.upload.addEventListener('progress', e=>{
-        if(e.lengthComputable) progressBar.value=(e.loaded/e.total)*100
+      xhr.upload.addEventListener('progress', e => {
+        if(e.lengthComputable) progressBar.value = (e.loaded/e.total)*100
       })
 
-      const cloudRes = await new Promise((resolve,reject)=>{
-        xhr.onload=()=> {
-          const res=JSON.parse(xhr.responseText)
+      const cloudRes = await new Promise((resolve, reject) => {
+        xhr.onload = ()=> {
+          const res = JSON.parse(xhr.responseText)
           if(xhr.status===200 && res.secure_url) resolve(res)
           else reject(new Error(res.error?.message||'Cloudinary upload failed'))
         }
-        xhr.onerror=()=>reject(new Error('Upload network error'))
+        xhr.onerror = ()=> reject(new Error('Upload network error'))
         xhr.send(formData)
       })
-      fileUrl=cloudRes.secure_url
+      fileUrl = cloudRes.secure_url
     }
 
     if(!fileUrl) throw new Error('No valid image to save')
+
     const { error } = await supabase.from('meme').insert([{ handle, url:fileUrl }])
     if(error) throw new Error(`Supabase insert failed: ${error.message}`)
+
     form.reset()
     loadMemes()
-  }catch(err){
+  } catch(err) {
     alert(`Upload failed: ${err.message}`)
     console.error(err)
-  }finally{
-    submitBtn.disabled=false
-    submitBtn.textContent='Submit'
-    progressBar.style.display='none'
+  } finally {
+    submitBtn.disabled = false
+    submitBtn.textContent = 'Submit'
+    progressBar.style.display = 'none'
   }
 })
 
 // Initial load
 loadMemes()
 </script>
-
 </body>
 </html>
