@@ -17,39 +17,29 @@
 
   .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
   .meme-card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    padding: 0.5rem;
-    width: 180px;
-    height: 220px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    overflow: hidden;
+    background:white;
+    border-radius:8px;
+    box-shadow:0 0 5px rgba(0,0,0,0.1);
+    width:180px;
+    height:220px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    overflow:hidden;
+    text-align:center;
     transition: transform 0.3s, box-shadow 0.3s;
   }
-  .meme-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-  }
+  .meme-card:hover { transform: scale(1.05); box-shadow:0 8px 15px rgba(0,0,0,0.2); }
   .meme-card img {
-    width: 100%;
-    height: 150px;
-    border-radius: 5px;
-    object-fit: cover;
-    margin-bottom: 0.5rem;
+    width:100%;
+    height:150px;
+    object-fit:cover;
+    border-radius:5px;
+    margin-bottom:0.5rem;
     transition: transform 0.3s;
   }
-  .meme-card:hover img {
-    transform: scale(1.05);
-  }
-  .meme-card .author {
-    font-size: 0.9rem;
-    color: #555;
-    word-break: break-word;
-  }
+  .meme-card:hover img { transform: scale(1.05); }
+  .meme-card .author { font-size:0.9rem; color:#555; word-break:break-word; }
   @media(max-width:500px){ .meme-card{ width:48%; } }
 </style>
 </head>
@@ -75,11 +65,11 @@
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
+// Your existing Supabase info
 const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
 const form = document.getElementById('memeForm')
 const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
@@ -106,7 +96,7 @@ async function loadMemes() {
   })
 }
 
-// Form submission with progress bar & Cloudinary
+// Handle submissions
 form.addEventListener('submit', async e => {
   e.preventDefault()
   const handle = document.getElementById('handle').value.trim()
@@ -127,15 +117,12 @@ form.addEventListener('submit', async e => {
     if (file) {
       const data = new FormData()
       data.append('file', file)
-      data.append('upload_preset', 'symbiotic_memes') // ensure unsigned preset exists
+      data.append('upload_preset', 'symbiotic_memes')
 
       const xhr = new XMLHttpRequest()
       xhr.open('POST', 'https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload')
-
       xhr.upload.addEventListener('progress', e => {
-        if (e.lengthComputable) {
-          progressBar.value = (e.loaded / e.total) * 100
-        }
+        if (e.lengthComputable) progressBar.value = (e.loaded / e.total) * 100
       })
 
       const cloudinaryResponse = await new Promise((resolve, reject) => {
