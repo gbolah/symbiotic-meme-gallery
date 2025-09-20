@@ -1,102 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Symbiotic Meme Upload</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #meme-feed img { max-width: 200px; margin: 10px; border-radius: 10px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Symbiotic Meme Gallery</title>
+<style>
+  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; color:#333; }
+  header { background:#4CAF50; color:white; padding:1rem; text-align:center; }
+  main { max-width:900px; margin:auto; padding:1rem; }
+  form { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:2rem; }
+  input[type="text"], input[type="url"], input[type="file"] { padding:0.5rem; font-size:1rem; width:100%; }
+  button { padding:0.6rem; font-size:1rem; background:#4CAF50; color:white; border:none; cursor:pointer; transition:0.2s; }
+  button:disabled { background:#999; cursor:not-allowed; }
+  button:hover:not(:disabled) { background:#45a049; }
+  .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
+  .meme-card { background:white; border-radius:8px; box-shadow:0 0 5px rgba(0,0,0,0.1); padding:0.5rem; width:180px; text-align:center; display:flex; flex-direction:column; }
+  .meme-card img { max-width:100%; border-radius:5px; object-fit:cover; }
+  .meme-card .author { margin-top:0.5rem; font-size:0.9rem; color:#555; word-break:break-word; }
+  @media(max-width:500px){ .meme-card{ width:48%; } }
+</style>
 </head>
 <body>
-  <h2>Upload Meme</h2>
-  <input type="text" id="handle" placeholder="Your handle"><br><br>
-  <input type="file" id="fileInput" accept="image/*"><br><br>
-  <button onclick="uploadMeme()">Upload</button>
 
-  <h2>Meme Feed</h2>
-  <div id="meme-feed"></div>
+<header>
+  <h1>Symbiotic Meme Gallery</h1>
+  <p>Share your memes! Upload a file or paste an image URL.</p>
+</header>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script>
-    // Supabase credentials
-    const SUPABASE_URL = "https://jzofwfixzsotrcmrxlsx.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<main>
+  <form id="memeForm">
+    <input type="text" id="handle" placeholder="@yourhandle" required>
+    <input type="url" id="memeUrl" placeholder="Paste image URL (optional)">
+    <input type="file" id="memeFile" accept="image/*">
+    <button type="submit" id="submitBtn">Submit</button>
+  </form>
 
-    // Cloudinary details
-    const CLOUD_NAME = "dm9w3jwq8";
-    const UPLOAD_PRESET = "symbiotic_memes";
+  <div class="gallery" id="gallery"></div>
+</main>
 
-    // Upload Meme
-    async function uploadMeme() {
-      const fileInput = document.getElementById("fileInput");
-      const handle = document.getElementById("handle").value.trim();
-      const file = fileInput.files[0];
-      if (!file || !handle) {
-        alert("Please enter a handle and select a file.");
-        return;
-      }
+<script type="module">
+// Supabase client
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-      // Step 1: Upload to Cloudinary
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", UPLOAD_PRESET);
+const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2Z3Zml4enNvdHJjbXJ4bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMTczODcsImV4cCI6MjA3Mzg5MzM4N30.zgV7-3R0cuopTtw8caZaYnkM5Mxg1bphJzkuvZGuf-8'
 
-      let cloudinaryUrl;
-      try {
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`,
-          { method: "POST", body: formData }
-        );
-        const data = await res.json();
-        if (data.secure_url) {
-          cloudinaryUrl = data.secure_url;
-        } else {
-          throw new Error("Cloudinary upload failed");
-        }
-      } catch (err) {
-        alert("Upload failed: " + err.message);
-        return;
-      }
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-      // Step 2: Save metadata to Supabase
-      const { error } = await supabase.from("meme").insert([
-        { handle: handle, url: cloudinaryUrl }
-      ]);
-      if (error) {
-        alert("Supabase insert failed: " + error.message);
-        return;
-      }
+const form = document.getElementById('memeForm')
+const gallery = document.getElementById('gallery')
+const submitBtn = document.getElementById('submitBtn')
 
-      // Step 3: Add to UI
-      displayMeme(cloudinaryUrl, handle);
-      fileInput.value = "";
-      document.getElementById("handle").value = "";
+// Load memes from Supabase
+async function loadMemes() {
+  gallery.innerHTML = ''
+  const { data, error } = await supabase
+    .from('meme')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) return console.error(error)
+
+  data.forEach(meme => {
+    const memeCard = document.createElement('div')
+    memeCard.className = 'meme-card'
+    memeCard.innerHTML = `
+      <img src="${meme.url}" alt="Meme by ${meme.handle}" onerror="this.src='https://via.placeholder.com/180?text=Image+Not+Found'">
+      <div class="author">${meme.handle}</div>
+    `
+    gallery.appendChild(memeCard)
+  })
+}
+
+// Form submission
+form.addEventListener('submit', async e => {
+  e.preventDefault()
+  const handle = document.getElementById('handle').value.trim()
+  const file = document.getElementById('memeFile').files[0]
+  const urlInput = document.getElementById('memeUrl').value.trim()
+
+  if (!handle) return alert('Please enter your handle')
+  if (!file && !urlInput) return alert('Please upload a file or enter an image URL')
+
+  submitBtn.disabled = true
+  submitBtn.textContent = 'Uploading...'
+
+  let fileUrl = urlInput
+
+  try {
+    if (file) {
+      // Upload to Cloudinary
+      const data = new FormData()
+      data.append('file', file)
+      data.append('upload_preset', 'symbiotic_memes')
+      const res = await fetch('https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload', {
+        method: 'POST',
+        body: data
+      })
+      const json = await res.json()
+      if (!res.ok || !json.secure_url) throw new Error('Cloudinary upload failed')
+      fileUrl = json.secure_url
     }
 
-    // Display Meme in Feed
-    function displayMeme(url, handle) {
-      const container = document.getElementById("meme-feed");
-      const div = document.createElement("div");
-      div.innerHTML = `<strong>@${handle}</strong><br><img src="${url}" alt="meme">`;
-      container.prepend(div);
-    }
+    // Insert into Supabase
+    const { error } = await supabase.from('meme').insert([
+      { handle, url: fileUrl }
+    ])
+    if (error) throw error
 
-    // Load existing memes on page load
-    async function loadMemes() {
-      const { data, error } = await supabase
-        .from("meme")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Error loading memes:", error);
-        return;
-      }
-      data.forEach(meme => displayMeme(meme.url, meme.handle));
-    }
+    form.reset()
+    loadMemes()
+  } catch (err) {
+    console.error(err)
+    alert('Upload failed, please try again.')
+  }
 
-    loadMemes();
-  </script>
+  submitBtn.disabled = false
+  submitBtn.textContent = 'Submit'
+})
+
+// Initial load
+loadMemes()
+</script>
+
 </body>
 </html>
