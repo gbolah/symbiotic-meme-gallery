@@ -8,15 +8,17 @@
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; color:#333; }
   header { background:#4CAF50; color:white; padding:1rem; text-align:center; }
   main { max-width:900px; margin:auto; padding:1rem; }
-  form { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:2rem; }
+  form { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
   input[type="text"], input[type="url"], input[type="file"] { padding:0.5rem; font-size:1rem; width:100%; }
   button { padding:0.6rem; font-size:1rem; background:#4CAF50; color:white; border:none; cursor:pointer; transition:0.2s; }
   button:disabled { background:#999; cursor:not-allowed; }
   button:hover:not(:disabled) { background:#45a049; }
   .gallery { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
-  .meme-card { background:white; border-radius:8px; box-shadow:0 0 5px rgba(0,0,0,0.1); padding:0.5rem; width:180px; text-align:center; display:flex; flex-direction:column; }
+  .meme-card { background:white; border-radius:8px; box-shadow:0 0 5px rgba(0,0,0,0.1); padding:0.5rem; width:180px; text-align:center; display:flex; flex-direction:column; transition: transform 0.3s; }
+  .meme-card:hover { transform: scale(1.05); }
   .meme-card img { max-width:100%; border-radius:5px; object-fit:cover; }
   .meme-card .author { margin-top:0.5rem; font-size:0.9rem; color:#555; word-break:break-word; }
+  progress { width:100%; display:none; margin-bottom:0.5rem; }
   @media(max-width:500px){ .meme-card{ width:48%; } }
 </style>
 </head>
@@ -32,6 +34,7 @@
     <input type="text" id="handle" placeholder="@yourhandle" required>
     <input type="url" id="memeUrl" placeholder="Paste image URL (optional)">
     <input type="file" id="memeFile" accept="image/*">
+    <progress id="uploadProgress" value="0" max="100"></progress>
     <button type="submit" id="submitBtn">Submit</button>
   </form>
 
@@ -39,7 +42,6 @@
 </main>
 
 <script type="module">
-// Supabase client
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const SUPABASE_URL = 'https://jzofwfixzsotrcmrxlsx.supabase.co'
@@ -50,6 +52,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 const form = document.getElementById('memeForm')
 const gallery = document.getElementById('gallery')
 const submitBtn = document.getElementById('submitBtn')
+const progressBar = document.getElementById('uploadProgress')
 
 // Load memes from Supabase
 async function loadMemes() {
@@ -72,7 +75,7 @@ async function loadMemes() {
   })
 }
 
-// Form submission
+// Form submission with file+URL handling and progress
 form.addEventListener('submit', async e => {
   e.preventDefault()
   const handle = document.getElementById('handle').value.trim()
@@ -84,39 +87,60 @@ form.addEventListener('submit', async e => {
 
   submitBtn.disabled = true
   submitBtn.textContent = 'Uploading...'
+  progressBar.style.display = 'block'
+  progressBar.value = 0
 
-  let fileUrl = urlInput
+  let fileUrl = urlInput || ''
 
   try {
     if (file) {
-      // Upload to Cloudinary
+      console.log('Uploading file to Cloudinary...', file)
+
       const data = new FormData()
       data.append('file', file)
-      data.append('upload_preset', 'symbiotic_memes')
-      const res = await fetch('https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload', {
-        method: 'POST',
-        body: data
+      data.append('upload_preset', 'symbiotic_memes') // ensure unsigned preset exists
+
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', 'https://api.cloudinary.com/v1_1/dm9w3jwq8/image/upload')
+
+      xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable) {
+          const percent = (e.loaded / e.total) * 100
+          progressBar.value = percent
+        }
       })
-      const json = await res.json()
-      if (!res.ok || !json.secure_url) throw new Error('Cloudinary upload failed')
-      fileUrl = json.secure_url
+
+      const cloudinaryResponse = await new Promise((resolve, reject) => {
+        xhr.onload = () => {
+          const res = JSON.parse(xhr.responseText)
+          if (xhr.status === 200 && res.secure_url) resolve(res)
+          else reject(new Error(res.error?.message || 'Cloudinary upload failed'))
+        }
+        xhr.onerror = () => reject(new Error('Network error during upload'))
+        xhr.send(data)
+      })
+
+      fileUrl = cloudinaryResponse.secure_url
+      console.log('File successfully uploaded to Cloudinary:', fileUrl)
     }
 
-    // Insert into Supabase
-    const { error } = await supabase.from('meme').insert([
-      { handle, url: fileUrl }
-    ])
-    if (error) throw error
+    if (!fileUrl) throw new Error('No valid file URL to save')
 
+    console.log('Inserting into Supabase...', { handle, url: fileUrl })
+    const { error } = await supabase.from('meme').insert([{ handle, url: fileUrl }])
+    if (error) throw new Error(`Supabase insert failed: ${error.message}`)
+
+    console.log('Successfully inserted into Supabase')
     form.reset()
     loadMemes()
   } catch (err) {
-    console.error(err)
-    alert('Upload failed, please try again.')
+    console.error('Upload error:', err)
+    alert(`Upload failed: ${err.message}`)
+  } finally {
+    submitBtn.disabled = false
+    submitBtn.textContent = 'Submit'
+    progressBar.style.display = 'none'
   }
-
-  submitBtn.disabled = false
-  submitBtn.textContent = 'Submit'
 })
 
 // Initial load
