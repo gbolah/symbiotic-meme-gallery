@@ -21,7 +21,7 @@
   }
 
   main { 
-    max-width: 1000px; 
+    max-width: 1200px; 
     margin: auto; 
     padding: 1rem; 
     background: rgba(57, 255, 20, 0.05); /* faded neon green */
@@ -69,24 +69,27 @@
   /* Gallery styling */
   .gallery { 
     display:flex; 
-    flex-wrap:wrap; 
-    gap:1rem; 
-    justify-content:center; 
+    flex-wrap: wrap; 
+    gap: 1rem; 
+    justify-content: center; 
   }
 
   .meme-card {
-    display: inline-block; /* shrink-wrap to image */
+    display: flex;
+    flex-direction: column;
     border: 5px solid #39FF14; /* neon frame */
     border-radius: 8px;
     overflow: hidden;
     text-align: center;
     margin: 10px;
+    max-width: 100%;     /* card never exceeds container width */
+    flex: 1 1 300px;     /* flexible width, min 300px */
   }
 
   .meme-card img {
     display: block;
-    max-width: 100%; /* scale down on smaller screens */
-    height: auto;    /* preserve aspect ratio */
+    width: 100%;    /* scales down proportionally */
+    height: auto;   /* preserves aspect ratio */
   }
 
   .meme-card .author {
@@ -127,6 +130,13 @@
   @keyframes pulse {
     0% { box-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14, 0 0 30px #39FF14; }
     100% { box-shadow: 0 0 20px #39FF14, 0 0 40px #39FF14, 0 0 60px #39FF14; }
+  }
+
+  @media(max-width:900px) {
+    .meme-card { flex: 1 1 45%; }
+  }
+  @media(max-width:600px) {
+    .meme-card { flex: 1 1 100%; }
   }
 </style>
 </head>
@@ -239,7 +249,6 @@ form.addEventListener('submit', async e => {
   }
 })
 
-// Initial load
 loadMemes()
 </script>
 </body>
